@@ -9,7 +9,7 @@
 
   <artifactId>bugzilla</artifactId>
   <packaging>hpi</packaging>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <name>Bugzilla plugin</name>
   <description>Bugzilla integration - link bugs in changeset descriptions</description>
 
