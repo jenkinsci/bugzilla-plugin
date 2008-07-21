@@ -86,8 +86,7 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
                         return;
                     }
                     try {
-                        String baseUrl = BugzillaProjectProperty.DESCRIPTOR.getBaseUrl();
-                    	new BugzillaSession(baseUrl);
+                    	new BugzillaSession(url);
                 		ok();
             	        return;
             		} catch (MalformedURLException e) {
