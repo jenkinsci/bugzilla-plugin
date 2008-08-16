@@ -9,6 +9,8 @@ import hudson.util.FormFieldValidator;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import javax.servlet.ServletException;
 
@@ -22,6 +24,8 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
 
     public static final class DescriptorImpl extends JobPropertyDescriptor {
     	private BugzillaSession bugzillaSession;
+    	private String regex;
+    	private boolean useTooltips;
     	
         public DescriptorImpl() {
             super(BugzillaProjectProperty.class);
@@ -42,11 +46,18 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
 
         public boolean configure(StaplerRequest req) {
             try {
-				bugzillaSession = new BugzillaSession(
-						req.getParameter("bugzilla.base"),
-						req.getParameter("bugzilla.username"),
-						req.getParameter("bugzilla.password")
-				);
+				regex = req.getParameter("bugzilla.regex");
+            	if(req.getParameter("bugzilla.usetooltips")==null) {
+            		useTooltips = false;
+            		bugzillaSession = new BugzillaSession(req.getParameter("bugzilla.base"));
+            	} else {
+            		useTooltips = true;
+					bugzillaSession = new BugzillaSession(
+							req.getParameter("bugzilla.base"),
+							req.getParameter("bugzilla.username"),
+							req.getParameter("bugzilla.password")
+					);
+            	}
 			} catch (MalformedURLException e) {
 			} catch (XmlRpcException e) {
 			}
@@ -69,10 +80,43 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
         	return bugzillaSession.getPassword();
         }
         
+        public boolean getUseToolTips() {
+        	return useTooltips;
+        }
+        
+        public String getRegex() {
+        	if(regex == null) return "\\b[0-9.]*[0-9]\\b";
+        	return regex;
+        }
+        
         public BugzillaSession getBugzillaSession() {
         	return bugzillaSession;
         }
         
+        /**
+         * Checks if the Bugzilla URL is accessible and exists.
+         */
+        public void doRegexCheck(final StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+            // this can be used to check existence of any file in any URL, so admin only
+        	new FormFieldValidator(req,rsp,false) {
+                protected void check() throws IOException, ServletException {
+                    String regex = Util.fixEmpty(request.getParameter("value"));
+                    if(regex==null) {
+                        error("No Bug ID regex");
+                        return;
+                    }
+                    try {
+                    	Pattern.compile(regex);
+                		ok();
+            	        return;
+            		} catch (PatternSyntaxException e) {
+            			error("Pattern cannot be compiled");
+            			return;
+            		}
+                }
+            }.process();
+        }
+
         /**
          * Checks if the Bugzilla URL is accessible and exists.
          */
@@ -93,7 +137,7 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
             			error("Not a valid URL");
             			return;
             		} catch (XmlRpcException e) {
-            			error("Error contacting bugzilla XMLRPC at this URL");
+            			error("Error contacting bugzilla XMLRPC at this URL - tooltips may not work");
             			return;
             		} 
                 }

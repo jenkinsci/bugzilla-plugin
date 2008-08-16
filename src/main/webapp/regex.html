@@ -1,0 +1,7 @@
+<div>
+  This is the regex used to match bug IDs in changeset comments.  After a match is found, first the entire match, 
+  then every grouping within the match is parsed as an integer.  The first successful parse is used as the bug ID.
+  <br>To match any number, use: <b><tt>[0-9]+</tt></b>
+  <br>The bugzilla style of matching bug + number would be: <b><tt>bug ([0-9]+)</tt></b>
+  Note that the parens in this example are used to identify the bug number.
+</div>
