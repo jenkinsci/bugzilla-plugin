@@ -18,6 +18,11 @@
       <artifactId>xmlrpc-client</artifactId>
       <version>3.1</version>
     </dependency>
+    <dependency>
+        <groupId>commons-httpclient</groupId>
+        <artifactId>commons-httpclient</artifactId>
+        <version>3.1</version>
+    </dependency>
   </dependencies>
   <scm>
     <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/bugzilla-1.0</connection>

@@ -130,7 +130,7 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
                         return;
                     }
                     try {
-                    	new BugzillaSession(url);
+                    	new BugzillaSession(url).checkVersion();
                 		ok();
             	        return;
             		} catch (MalformedURLException e) {
@@ -161,6 +161,7 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
 								request.getParameter("user"),
 								request.getParameter("pass")
 						);
+						bsess.checkVersion();
 					} catch (XmlRpcException e) {
 						// no error report needed, since it would duplicate the error from checkUrl
 						ok();

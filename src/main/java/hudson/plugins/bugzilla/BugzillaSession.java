@@ -27,18 +27,16 @@ public class BugzillaSession {
 	}
 
 	public BugzillaSession(String u, String username, String password) throws XmlRpcException, MalformedURLException {
-		try {
-			this.url = u;
-			this.username = username;
-			this.password = password;
-			initClient();
-			HashMap<String, Object> result = this.execute("Bugzilla.version", null);
-			String version = (String)result.get("version");
-			LOGGER.log(Level.INFO, "Bugzilla server version is " + version);
-		} catch (XmlRpcException e) {
-			LOGGER.log(Level.WARNING, "XmlRpcException starting bugzilla session: " + e.getMessage());
-			throw e;
-		}
+		this.url = u;
+		this.username = username;
+		this.password = password;
+		initClient();
+	}
+
+	public void checkVersion() throws XmlRpcException {
+		HashMap<String, Object> result = this.execute("Bugzilla.version", null);
+		String version = (String)result.get("version");
+		LOGGER.log(Level.INFO, "Bugzilla server version is " + version);
 	}
 	
 	private void initClient() throws MalformedURLException {
