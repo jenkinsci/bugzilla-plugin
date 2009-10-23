@@ -1,4 +1,6 @@
 package hudson.plugins.bugzilla;
+
+import hudson.Extension;
 import hudson.MarkupText;
 import hudson.MarkupText.SubText;
 import hudson.model.AbstractBuild;
@@ -12,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+@Extension
 public class BugzillaChangelogAnnotator extends ChangeLogAnnotator {
 	private static int getId(SubText token) {
 		String id = null;

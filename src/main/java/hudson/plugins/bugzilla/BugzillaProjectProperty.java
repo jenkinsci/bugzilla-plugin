@@ -1,11 +1,13 @@
 package hudson.plugins.bugzilla;
 
+import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractProject;
+import hudson.model.Hudson;
 import hudson.model.Job;
 import hudson.model.JobProperty;
 import hudson.model.JobPropertyDescriptor;
-import hudson.util.FormFieldValidator;
+import hudson.util.FormValidation;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -14,12 +16,14 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.servlet.ServletException;
 
+import net.sf.json.JSONObject;
 import org.apache.xmlrpc.XmlRpcException;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 
 public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
 
+    @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     public static final class DescriptorImpl extends JobPropertyDescriptor {
@@ -32,6 +36,7 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
             load();
         }
 
+        @Override
         public boolean isApplicable(Class<? extends Job> jobType) {
         	return false;
         }
@@ -40,13 +45,15 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
         	return "Bugzilla";
         }
         
-        public JobProperty<?> newInstance(StaplerRequest req) throws FormException {
+        @Override
+        public BugzillaProjectProperty newInstance(StaplerRequest req, JSONObject formData) throws FormException {
         	return new BugzillaProjectProperty();
         }
 
-        public boolean configure(StaplerRequest req) {
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject formData) {
             try {
-				regex = req.getParameter("bugzilla.regex");
+                regex = req.getParameter("bugzilla.regex");
             	if(req.getParameter("bugzilla.usetooltips")==null) {
             		useTooltips = false;
             		bugzillaSession = new BugzillaSession(req.getParameter("bugzilla.base"));
@@ -96,91 +103,62 @@ public class BugzillaProjectProperty extends JobProperty<AbstractProject<?,?>> {
         /**
          * Checks if the Bugzilla URL is accessible and exists.
          */
-        public void doRegexCheck(final StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            // this can be used to check existence of any file in any URL, so admin only
-        	new FormFieldValidator(req,rsp,false) {
-                protected void check() throws IOException, ServletException {
-                    String regex = Util.fixEmpty(request.getParameter("value"));
-                    if(regex==null) {
-                        error("No Bug ID regex");
-                        return;
-                    }
-                    try {
-                    	Pattern.compile(regex);
-                		ok();
-            	        return;
-            		} catch (PatternSyntaxException e) {
-            			error("Pattern cannot be compiled");
-            			return;
-            		}
-                }
-            }.process();
+        public FormValidation doRegexCheck(@QueryParameter String value) {
+            if(Util.fixEmpty(value)==null) {
+                return FormValidation.error("No Bug ID regex");
+            }
+            try {
+                Pattern.compile(value);
+                return FormValidation.ok();
+            } catch (PatternSyntaxException e) {
+                return FormValidation.error("Pattern cannot be compiled");
+            }
         }
 
         /**
          * Checks if the Bugzilla URL is accessible and exists.
          */
-        public void doUrlCheck(final StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        public FormValidation doUrlCheck(@QueryParameter final String value)
+                throws IOException, ServletException {
             // this can be used to check existence of any file in any URL, so admin only
-            new FormFieldValidator.URLCheck(req,rsp) {
-                protected void check() throws IOException, ServletException {
-                    String url = Util.fixEmpty(request.getParameter("value"));
+            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) return FormValidation.ok();
+            return new FormValidation.URLCheck() {
+                @Override
+                protected FormValidation check() throws IOException, ServletException {
+                    String url = Util.fixEmpty(value);
                     if(url==null) {
-                        error("No bugzilla base URL");
-                        return;
+                        return FormValidation.error("No bugzilla base URL");
                     }
                     try {
                     	new BugzillaSession(url).checkVersion();
-                		ok();
-            	        return;
-            		} catch (MalformedURLException e) {
-            			error("Not a valid URL");
-            			return;
+                        return FormValidation.ok();
+                    } catch (MalformedURLException e) {
+            			return FormValidation.error("Not a valid URL");
             		} catch (XmlRpcException e) {
-            			error("Error contacting bugzilla XMLRPC at this URL - tooltips may not work");
-            			return;
+            			return FormValidation.error("Error contacting bugzilla XMLRPC at this URL - tooltips may not work");
             		} 
                 }
-            }.process();
+            }.check();
         }
 
         /**
          * Checks if the user name and password are valid.
          */
-        public void doLoginCheck(final StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator(req,rsp,false) {
-                protected void check() throws IOException, ServletException {
-                    String url = Util.fixEmpty(request.getParameter("url"));
-                    if(url==null) {// URL not entered yet
-                        ok();
-                        return;
-                    }
-                    BugzillaSession bsess = null;
-					try {
-						bsess = new BugzillaSession(url,
-								request.getParameter("user"),
-								request.getParameter("pass")
-						);
-						bsess.checkVersion();
-					} catch (XmlRpcException e) {
-						// no error report needed, since it would duplicate the error from checkUrl
-						ok();
-						return;
-					}
-                    if(bsess.login()) ok();
-                    else error("Invalid username/password");
-                }
-            }.process();
-        }
-
-        public void save() {
-            super.save();
+        public FormValidation doLoginCheck(@QueryParameter String url,
+                @QueryParameter String user, @QueryParameter String pass) throws IOException {
+            if(Util.fixEmpty(url)==null) {// URL not entered yet
+                return FormValidation.ok();
+            }
+            BugzillaSession bsess = null;
+            try {
+                bsess = new BugzillaSession(url, user, pass);
+                bsess.checkVersion();
+            } catch (XmlRpcException e) {
+                // no error report needed, since it would duplicate the error from checkUrl
+                return FormValidation.ok();
+            }
+            if(bsess.login()) return FormValidation.ok();
+            else return FormValidation.error("Invalid username/password");
         }
     }
-
-	@Override
-	public JobPropertyDescriptor getDescriptor() {
-		return DESCRIPTOR;
-	}
-
 }
