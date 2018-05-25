@@ -22,7 +22,7 @@ public class BugzillaChangelogAnnotator extends ChangeLogAnnotator {
 			id = token.group(i);
 
 			try {
-				return Integer.valueOf(id);
+				return Integer.parseInt(id);
 			} catch (NumberFormatException e) {
 				LOGGER.log(Level.FINE, "{0} is not a number in group {1}, trying next group", new Object[]{id, i});
 				continue;
