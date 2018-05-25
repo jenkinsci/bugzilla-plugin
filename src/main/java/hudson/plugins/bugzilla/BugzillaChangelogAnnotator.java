@@ -3,7 +3,7 @@ package hudson.plugins.bugzilla;
 import hudson.Extension;
 import hudson.MarkupText;
 import hudson.MarkupText.SubText;
-import hudson.model.AbstractBuild;
+import hudson.model.Run;
 import hudson.scm.ChangeLogAnnotator;
 import hudson.scm.ChangeLogSet.Entry;
 
@@ -22,7 +22,7 @@ public class BugzillaChangelogAnnotator extends ChangeLogAnnotator {
 			id = token.group(i);
 
 			try {
-				return Integer.valueOf(id);
+				return Integer.parseInt(id);
 			} catch (NumberFormatException e) {
 				LOGGER.log(Level.FINE, "{0} is not a number in group {1}, trying next group", new Object[]{id, i});
 				continue;
@@ -30,7 +30,7 @@ public class BugzillaChangelogAnnotator extends ChangeLogAnnotator {
 		}
 	}
 	@Override
-	public void annotate(AbstractBuild<?, ?> build, Entry change,
+	public void annotate(Run<?, ?> build, Entry change,
 			MarkupText text) {
 		Pattern pattern = null;
 		String regex = BugzillaProjectProperty.DESCRIPTOR.getRegex();
@@ -72,7 +72,7 @@ public class BugzillaChangelogAnnotator extends ChangeLogAnnotator {
 				token.surroundWith(
 						String.format("<a href='%s/show_bug.cgi?id=%d' tooltip='%s'>", baseUrl, key, summary),
 						"</a>"
-				);            	
+				);
 			}
 		}
 	}
